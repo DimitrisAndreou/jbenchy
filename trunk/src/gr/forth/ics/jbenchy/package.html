@@ -1,0 +1,290 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+    <body bgcolor="white">
+        
+        Provides API to easily store records in a database, and subsequently categorize
+        and aggregate them by a set of variables.
+        
+        <h2>Package Specification</h2>
+        
+        The central type in this package is the {@link gr.forth.ics.jbenchy.Aggregator}.
+        Aggregator instances can be obtained through a {@link gr.forth.ics.jbenchy.Database}.
+        See {@link gr.forth.ics.jbenchy.DbFactories} class for creating Database instances.
+        <p>
+        After creating an Aggregator, there are mainly two operations:
+        <ul>
+            <li>Store <i>records</i> (see {@link gr.forth.ics.jbenchy.Record} and
+                {@link gr.forth.ics.jbenchy.Aggregator#record(Record)}),
+                that is, arbitrary measurements (typically after an experiment/benchmark)
+                coupled with variable bindings which describe the configuration/environment
+            in which the record was created</li>
+            <li>Aggregate the records (possible ordered/filtered) to create custom reports</li>
+        </ul>
+        
+        <p>
+        For example this is how to create a local database named "mydb" (either
+        new or a pre-existing one):
+        <pre>
+Database db = DbFactories.localDerby().getOrCreate("mydb");
+        </pre>
+        
+        <p>
+        Now assume we want to benchmark the performance of some
+        virtual cars, according to the cargo they carry as well as the ratio
+        of curves that the road has. Also assume that we want to record
+        the name of the driver that drove the car each time, as well as
+        the time each experiment took place. For convenience, although not strictly
+        necessary, lets create an enumeration of the variables we are interested
+        in:
+        
+        <pre>
+enum Variables {
+    ELAPSED_TIME, CAR, CARGO, CURVE_RATIO, DRIVER, TIME_OF_DAY
+}
+        </pre>
+        
+        <p>
+        In this example, ELAPSED_TIME corresponds to the actual experimental measurement,
+        while the rest of the variables simply describe the context in which the experiment
+        took place. It is worth noting though that there is no conceptual difference between
+        the these two kinds of variables. It is entirely reasonable to create a schema
+        which combines multiple variables designated for measurements.
+        <p>
+        Now lets create an appropriate schema that describes our experiment's data set.
+        We are measuring the elapsed time in nanoseconds (long integer).
+        Cargo is described in
+        kilograms (int), curve ratio is also a double, driver and car names do not exceed 30
+        characters, and finally the moment each experiment took place is a 
+        <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/sql/Timestamp.html">java.sql.Timestamp</a>:
+        
+        <pre>
+Schema schema = new Schema().
+        add(Variables.ELAPSED_TIME, DataTypes.LONG).
+        add(Variables.CAR, DataTypes.string(30)).
+        add(Variables.CARGO, DataTypes.INTEGER). 
+        add(Variables.CURVE_RATIO, DataTypes.DOUBLE).
+        add(Variables.DRIVER, DataTypes.string(30)).
+        add(Variables.TIME_OF_DAY, DataTypes.TIMESTAMP);
+        </pre>
+        <p>
+        <i>Important note</i>: Wherever, throughout the Aggregator toolkit, a variable
+        has to be declared, it is irrelevant whether an enum, or another object, or a
+        string is given for it. In all cases, the upper-cased string representation of the
+        passed object is used. <tt>"Value"</tt>, <tt>"vALue"</tt>,
+        <tt>an <tt>enum</tt> Variables.VALUE</tt>, or any other object with a <tt>toString()</tt>
+        method that returns "VALUE" when upper-cased, refer to the same variable. We
+        prefer referring to variables through an <tt>enum</tt> for safety against accidental
+        typos.
+        <p>
+        
+        Next, by using this schema, we will direct the database to create a
+        suitable Aggregator:
+        
+        <pre>
+//This will either create a table "RACING" if there is none, or reuse it if that exists
+Aggregator aggregator = db.getOrCreate(schema, "racing");
+        </pre>
+        
+        Now lets execute the experiment and record our findings:
+        
+        <pre>
+String[] cars = { "McLaren", "Ferrari", "FIAT" };
+String[] drivers = { "Schumacher", "Alonso", "Barrichello" };
+int[] cargos = { 10, 40, 70, 100 };
+
+for (String car : cars) {
+    for (String driver : drivers) {
+        for (int cargo : cargos) {
+            //lets run the experiment multiple times to extract safer conclusions
+            for (int repeat = 0; repeat < 100; repeat++) {
+                long elapsedTime = -System.nanoTime();
+                race(car, driver, cargo);
+                elapsedTime += System.nanoTime();
+                
+                aggregator.record(new Record()
+                    .add(Variables.ELAPSED_TIME, elapsedTime) //measurement
+                    .add(Variables.CAR, car) //variables
+                    .add(Variables.DRIVER, driver)
+                    .add(Variables.CARGO, cargo)
+                    .add(Variables.TIME, Utils.now());
+            }
+        }
+    }
+}
+        </pre>
+        Note that there is no problem storing multiple records with the
+        same set of variable bindings, i.e. repeatedly retest with the same settings;
+        all measurements are independently stored.
+        <p>
+        Now we can create custom reports of our data. For example, to see the
+        average time per driver, we write:
+        <pre>
+Records avgTimesPerDriver = aggregator.averageOf(Variables.ELAPSED_TIME).per(Variables.DRIVER);
+for (Record record : avgTimesPerDriver) {
+    System.out.println(record);
+    String driver = (String)record.get(Variables.DRIVER);
+    double elapsedTime = (Double)record.getValue();
+}
+        </pre>
+        <p>
+        Note that we access the value of the aggregation by the <tt>Record.getValue()</tt>
+        method (which is also equivalent to <tt>Record.get(null)</tt>).
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Driver</th>
+                    <th>Average Elapsed Time (formatted in seconds)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Schumacher</td>
+                    <td>39.2</td>
+                </tr>
+                <tr>
+                    <td>Alonso</td>
+                    <td>39.9</td>
+                </tr>
+                <tr>
+                    <td>Barrichello</td>
+                    <td>41.3</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+        There are going to be exactly three Record instances reported, all containing
+        a DRIVER key (each record will have a distinct driver name), along with
+        the average time per that driver (as already mentioned, accessed either through
+        <tt>Record.getValue()</tt> method or by the <tt>null</tt> key).
+        <p>
+        As another example, lets find the minimum elapsed time for each
+        distinct driver/car combination. Furthermore, we require the results
+        to come ordered by the driver's name (ascending):
+        <pre>
+Records minTimesPerDriverAndCar = aggregator.
+    ordered(Orders.asc(Variables.DRIVER)).
+    minOf(Variables.ELAPSED_TIME).per(Variables.DRIVER, Variables.CAR);
+for (Record record : minTimesPerDriverAndCar) {
+    System.out.println(record);
+    String car = (String)record.get(Variables.CAR);
+    String driver = (String)record.get(Variables.DRIVER);
+    double elapsedTime = (Double)record.getValue();
+}
+        </pre>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Car</th>
+                    <th>Driver</th>
+                    <th>Minimum elapsed time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Alonso</td>
+                    <td>McLaren</td>
+                    <td>21.5</td>
+                </tr>
+                <tr>
+                    <td>Alonso</td>
+                    <td>Ferrari</td>
+                    <td>20.9</td>
+                </tr>
+                <tr>
+                    <td>Alonso</td>
+                    <td>FIAT</td>
+                    <td>85.9</td>
+                </tr>
+                <tr>
+                    <td>Barrichello</td>
+                    <td>McLaren</td>
+                    <td>22.4</td>
+                </tr>
+                <tr>
+                    <td>Barrichello</td>
+                    <td>Ferrari</td>
+                    <td>21.0</td>
+                </tr>
+                <tr>
+                    <td>Barrichello</td>
+                    <td>FIAT</td>
+                    <td>79.9</td>
+                </tr>
+                <tr>
+                    <td>Schumacher</td>
+                    <td>McLaren</td>
+                    <td>20.5</td>
+                </tr>
+                <tr>
+                    <td>Schumacher</td>
+                    <td>Ferrari</td>
+                    <td>20.1</td>
+                </tr>
+                <tr>
+                    <td>Schumacher</td>
+                    <td>FIAT</td>
+                    <td>82.6</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+        Finally, assume that we want to filter FIAT out from the results, as if
+        we did not use that at all.
+        <pre>
+Records minTimesPerDriverAndCar = aggregator.
+    filtered(Filters.notEq(Variables.CAR, "FIAT")).
+    ordered(Orders.asc(Variables.DRIVER)).
+    minOf(Variables.ELAPSED_TIME).per(Variables.CAR, Variables.DRIVER);
+for (Record record : minTimesPerDriverAndCar) {
+    System.out.println(record);
+    String car = (String)record.get(Variables.CAR);
+    String driver = (String)record.get(Variables.DRIVER);
+    double elapsedTime = (Double)record.getValue();
+}
+        </pre>
+    </body>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Car</th>
+                <th>Driver</th>
+                <th>Minimum elapsed time</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Alonso</td>
+                <td>McLaren</td>
+                <td>21.5</td>
+            </tr>
+            <tr>
+                <td>Alonso</td>
+                <td>Ferrari</td>
+                <td>20.9</td>
+            </tr>
+            <tr>
+                <td>Barrichello</td>
+                <td>McLaren</td>
+                <td>22.4</td>
+            </tr>
+            <tr>
+                <td>Barrichello</td>
+                <td>Ferrari</td>
+                <td>21.0</td>
+            </tr>
+            <tr>
+                <td>Schumacher</td>
+                <td>McLaren</td>
+                <td>20.5</td>
+            </tr>
+            <tr>
+                <td>Schumacher</td>
+                <td>Ferrari</td>
+                <td>20.1</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>
+    That covers the basic functionality of this library. For creating diagrams
+    out of reported records, see the gr.forth.ics.jbenchy.diagram package.
+</html>

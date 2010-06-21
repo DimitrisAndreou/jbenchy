@@ -1,0 +1,28 @@
+This is a very simple walk-through for accessing a Derby database through the console. To use this, you must download and install the Derby bundle, which includes the command-line tools.
+
+First, start the "ij" interpreter (which is in the /bin folder of the Derby bundle, you should put that folder to your PATH environment variable for convenience):
+
+shell> ij [enter]
+ij version 10.2
+ij>
+
+Now you are ready to connect to a database. For example, if you have previously created a database "mydb" (and a /mydb folder exists in the folder from which you started ij), you can connect to it by:
+
+ij> connect 'jdbc:derby:mydb';
+ij>
+
+Note that only one client can locally use the database at a time. I.e. you can't concurrently use the Aggregator tool to insert data to this database.
+
+At any time you can disconnect from the database by:
+
+ij> disconnect;
+
+To view a catalogue of all database tables, do this:
+
+ij> show tables;
+
+If you have used Aggregator to create tables in the database, you should find tables with the same names you gave to each Aggregator instance. Each table contains all data stored by each respective aggregator, and you can start doing manual queries or updates on them. Normally though you would use the Aggregator APIs to easily perform the queries you need and create reports.
+
+To exit the ij interpreter, simply do:
+
+ij> exit;
