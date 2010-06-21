@@ -49,8 +49,7 @@ public class Example extends TestCase {
         Records records = aggregator.filtered(Filters.ge(Variables.Phase, 1.0)).
                 ordered(Orders.desc(Variables.Phase)).
                 ordered(Orders.asc(Variables.Height)).
-                report(Aggregate.average(Variables.Value),
-                Variables.Phase, Variables.Height);
+                averageOf(Variables.Value).per(Variables.Phase, Variables.Height);
 
         System.out.println(records);
         Diagram diagram = DiagramFactory.newDiagram(records).
