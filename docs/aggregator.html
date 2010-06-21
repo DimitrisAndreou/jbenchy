@@ -1,0 +1,144 @@
+<html>
+<head>
+  <title>Aggregator</title>
+</head>
+
+			<a name="#home"></a>
+			<h1 class="title">Aggregator tutorial</h1>
+				<p>A toolkit that can be useful for everyone out there that makes experiments
+				in Java, records measurements and generates reports ("tell me what is the
+				average of the measurements per this variable"). It can even create diagrams
+				out of them (<a href="http://www.gnuplot.info/">gnuplot</a> and <a
+				href="http://www.jfree.org/jfreechart/">JFreeChart</a> are supported),
+				although this should be considered as a bonus. The real thing is that you no
+				longer have to fight with boilerplate and custom reporting code (especially
+				the last few days before research paper submission deadlines!). <strong>If
+				you ever need to make experiments / benchmarks in Java and gather data and
+				analyze them, you definitely want to take a look in this</strong>! Check out
+				the javadocs included in the aggregator's bundle
+				(make sure to start from the package specifications because they contain
+				usage examples).</p>
+
+				<p>
+				Sorry for the lack of imagination regarding the project title. I created
+				it so to easily aggregate (structured) data from experimental measurements,
+				so here you go!
+				Not to be confused with RSS aggregators, news aggregators, and what not.
+				</p>
+			<p>
+
+			<h2 class="title">Usage example</h2>
+				Create a database to store the experimental results: <br>
+				<br>
+
+				<pre>Database db = DbFactories.localDerby().getOrCreate(<span class="string">"</span><span class="string">exampleDb</span><span class="string">"</span>);</pre>
+				<br>
+				Define the schema of the data to be handled: <br>
+				<br>
+
+				<pre>Schema schema = <span class="ST0">new</span> Schema()
+	.add(<span class="string">"</span><span class="string">input1</span><span class="string">"</span>, DataTypes.DOUBLE)
+	.add(<span class="string">"</span><span class="string">input2</span><span class="string">"</span>, DataTypes.DOUBLE)
+	.add(<span class="string">"</span><span class="string">measurement</span><span class="string">"</span>, DataTypes.DOUBLE);</pre>
+				<br>
+				Create the aggregator, which is capable of recording data, and creating
+				reports out of them: <br>
+				<br>
+
+				<pre>Aggregator aggregator = db.forceCreate(schema, <span class="string">"</span><span class="string">data</span><span class="string">"</span>);</pre>
+				<br>
+				Execute a simple experiment, by varying two variables, and measuring
+				something according to them: <br>
+				<br>
+
+				<pre><span class="ST0">for</span> (<span class="ST0">double</span> input1 = <span class="number">0.0</span>; input1 &lt; <span class="number">10.0</span>; input1 += <span class="number">0.5</span>) {
+	<span class="ST0">for</span> (<span class="ST0">double</span> input2 = <span class="number">0.0</span>; input2 &lt; <span class="number">10.0</span>; input2 += <span class="number">0.5</span>) {
+		<span class="comment">//execute experiment for these parameters</span>
+
+		<span class="comment">//repeat each experiment ten times</span>
+		<span class="ST0">for</span> (<span class="ST0">int</span> repeats = <span class="number">0</span>; repeats &lt; <span class="number">10</span>; repeats++) {
+		<span class="ST0">double</span> measurement = experiment(input1, input2);
+		<span class="comment">//create a record representing the specific experiment and store it</span>
+		aggregator.record(<span class="ST0">new</span> Record()
+			.add(<span class="string">"</span><span class="string">input1</span><span class="string">"</span>, input1)
+			.add(<span class="string">"</span><span class="string">input2</span><span class="string">"</span>, input2)
+			.add(<span class="string">"</span><span class="string">measurement</span><span class="string">"</span>, measurement));
+		}
+	}
+}</pre>
+
+				<br>
+				(Note: variables need not be defined by strings. Enums are fine too. For
+				example, these could be used:</p>
+				<pre>
+enum Variables {
+	INPUT1,
+	INPUT2,
+	MEASUREMENT
+}
+				</pre>
+				In fact, any object can be used, internally its .toString() method is called, and the string is used in a case-insensitive manner). <br>
+				<p>
+				Now lets see the average measurement, for each distinct value of "input1":
+				<br>
+				</p>
+				<pre>Records records1 = aggregator.averageOf(<span class="string">"</span><span class="string">measurement</span><span class="string">"</span>).per(<span class="string">"</span><span class="string">input1</span><span class="string">"</span>);
+System.out.println(records1);
+				</pre>
+
+				(Note that multiple variables can be specified in the <tt>per()</tt> clause, or the <tt>perAll()</tt> method can be used to aggregate over all values).
+				<br>
+
+				<pre>
+<span class="comment">//Prints the following (null is the key for the average we requested):</span>
+<span class="comment">//{INPUT1=0.0, null=2.4134248936280946}</span>
+<span class="comment">//{INPUT1=0.5, null=2.446740183102116}</span>
+<span class="comment">//{INPUT1=1.0, null=2.4209812849423153}</span>
+<span class="comment">//...</span>
+<span class="comment">//{INPUT1=8.5, null=2.451182446002516}</span>
+<span class="comment">//{INPUT1=9.0, null=2.4580809911471158}</span>
+<span class="comment">//{INPUT1=9.5, null=2.4079731939133824}</span></pre>
+				<br>
+				Lets do the same for "input2". <br>
+				<br>
+
+				<pre>Records records2 = aggregator.averageOf(<span class="string">"</span><span class="string">measurement</span><span class="string">"</span>).per(<span class="string">"</span><span class="string">input2</span><span class="string">"</span>);
+System.out.println(records2);
+
+<span class="comment">//Prints:</span>
+<span class="comment">//{INPUT2=0.0, null=0.49248966971474956}</span>
+<span class="comment">//{INPUT2=0.5, null=5.2688706685206865}</span>
+<span class="comment">//{INPUT2=1.0, null=8.900585034163608}</span>
+<span class="comment">//...        </span>
+<span class="comment">//{INPUT2=8.5, null=8.489498306888802}</span>
+<span class="comment">//{INPUT2=9.0, null=4.617760556069815}</span>
+<span class="comment">//{INPUT2=9.5, null=-0.2626161345687626}</span></pre>
+				<br>
+				<br>
+				It seems that the measurement varies greatly for different values of
+				"input2", but only slightly, if at all, for different values of "input1". <br>
+				<br>
+				Lets create an image for the second report: <br>
+				<br>
+
+				<pre>Diagram diagram = DiagramFactory.newDiagram(records2);
+<span class="ST0">new</span> ChartFactory(diagram).newLineChart().write(<span class="number">800</span>, <span class="number">600</span>, <span class="string">"</span><span class="string">jpeg</span><span class="string">"</span>, <span class="ST0">new</span> File(<span class="string">"</span><span class="string">image.jpg</span><span class="string">"</span>));</pre>
+				<br>
+				<br>
+				This is what we get (using the JFreeChart support): <br>
+				<br>
+				<img alt="" src="images/AggregatorExample.jpg" width="50%"> <br>
+				<br>
+				Yep, that gives it away. This is the declaration of the experiment()
+				function:<br>
+				<br>
+
+				<pre><span class="ST0">static</span> <span class="ST0">double</span> experiment(<span class="ST0">double</span> input1, <span class="ST0">double</span> input2) {
+	<span class="ST0">return</span> Math.sin(input2) * <span class="number">10.0</span> + Math.random();
+}</pre>
+				<br>
+
+
+				<p class="byline">Last updated on June 20, 2010</p>
+</body>
+</html>

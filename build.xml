@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="JBenchy" default="default" basedir=".">
+    <description>Builds the project JBenchy.</description>
+    <import file="nbproject/build-impl.xml"/>
+
+    <target name="-pre-jar">
+        <delete dir="${build.classes.dir}/example"/>
+    </target>
+
+    <target name="-post-jar">
+        <mkdir dir="${dist.dir}/lib"/>
+        <copy todir="${dist.dir}/lib">
+            <fileset dir="lib">
+                <include name="*.jar"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="dist" depends="clean,compile,jar,javadoc"
+            description="Create a self-contained, package with this project's artifacts">
+        <delete dir="nbproject/private"/>
+        <property name="zip.file" value="dist/JBenchy.zip"/>
+        <zip destfile="${zip.file}">
+            <zipfileset dir="src" prefix="src"/>
+            <zipfileset dir="test" prefix="test"/>
+            <zipfileset dir="docs" prefix="docs"/>
+            <zipfileset file="build.xml" prefix=""/>
+            <zipfileset file="LICENSE.txt" prefix=""/>
+            <zipfileset dir="nbproject" prefix="nbproject"/>
+            <zipfileset dir="dist/javadoc" prefix="docs/api"/>
+            <zipfileset file="${dist.jar}" prefix="dist"/>
+            <zipfileset file="lib/*.jar" prefix="lib"/>
+            <zipfileset file="testlib/*.jar" prefix="testlib"/>
+        </zip>
+    </target>
+</project>

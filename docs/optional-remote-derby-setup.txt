@@ -1,0 +1,43 @@
+To use a remote JavaDB/Derby instance instead of an embedded one, these steps are the most straightforward:
+
+1. Have derby.jar and derbynet.jar on your classpath
+
+2. Create a derby.properties file on the directory from where you will invoke the server process. For example, DERBY_HOME/bin/derby.properties
+
+3. Add this content to it in order to get the simplest user authentication
+
+derby.connection.requireAuthentication=true
+derby.authentication.provider=BUILTIN
+derby.user.user1=password1
+derby.user.user2=password2
+#...
+
+4. You can invoke the server by:
+
+java -jar derbynet.jar start
+
+5. You can test the server via ij tool:
+
+DERBY_HOME/bin/ij
+ij version 10.2
+ij> connect 'jdbc:derby://localhost:1527/testdb;user=user1;password=password1;create=true';
+ij(CONNECTION1)> show tables;
+TABLE_SCHEM         |TABLE_NAME                    |REMARKS
+------------------------------------------------------------------------
+SYS                 |SYSALIASES                    |
+...
+SYS                 |SYSVIEWS                      |
+SYSIBM              |SYSDUMMY1                     |
+
+19 rows selected
+
+6. Done! Your server is ready to accept remote connections.
+
+Note that if you want to access the database tables using user authentication, all tables must be prefixed with "APP.". For instance, if a table "MY_TABLE" was created by the Aggregator framework, to see the values of it in case of authenticated connection would require typing:
+
+SELECT * FROM APP.MY_TABLE;
+
+Whereas if no user/password were used to connect to the database, it would simply be:
+SELECT * FROM MY_TABLE;
+
+This is because when the username is not empty, all non-qualified references to tables are assumed to have the qualification "<USER>.", that is, if the username is "Dimitris", then "SELECT * FROM MY_TABLE" would implicitly mean "SELECT * FROM Dimitris.MY_TABLE", which would probably not exist.
