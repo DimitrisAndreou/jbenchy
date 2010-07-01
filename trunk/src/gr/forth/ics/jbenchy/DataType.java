@@ -35,5 +35,5 @@ public interface DataType<T> {
      * @param value the Java object to be rendered in SQL
      * @return the string representation of the value that can be safely embedded in SQL 
      */
-    String toSql(T value);
+    String toSql(Object value);
 }
