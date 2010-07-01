@@ -164,9 +164,6 @@ public class Filters {
                         " target schema: " + schema);
             }
             try {
-                //this is unsafe. If a value that cannot be handled by the specific DataType is passed,
-                //then a ClassCastException would occur in this method call.
-                @SuppressWarnings("unchecked")
                 String sql = valueType.toSql(value);
                 return variable + symbol + sql;
             } catch (ClassCastException e) {

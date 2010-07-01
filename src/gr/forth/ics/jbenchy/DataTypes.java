@@ -86,8 +86,11 @@ public class DataTypes {
                 }
 
                 @Override
-                public String toSql(Timestamp value) {
-                    return "'" + value + "'";
+                public String toSql(Object value) {
+                    if (value instanceof Timestamp) {
+                        return "'" + value + "'";
+                    }
+                    return super.toSql(value);
                 }
             };
 
@@ -174,7 +177,7 @@ public class DataTypes {
             return name;
         }
 
-        public String toSql(T value) {
+        public String toSql(Object value) {
             return String.valueOf(value);
         }
     }
@@ -189,7 +192,7 @@ public class DataTypes {
         }
 
         @Override
-        public String toSql(String value) {
+        public String toSql(Object value) {
             return "'" + value + "'";
         }
     }
