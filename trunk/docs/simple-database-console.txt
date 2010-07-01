@@ -21,7 +21,7 @@ To view a catalogue of all database tables, do this:
 
 ij> show tables;
 
-If you have used Aggregator to create tables in the database, you should find tables with the same names you gave to each Aggregator instance. Each table contains all data stored by each respective aggregator, and you can start doing manual queries or updates on them. Normally though you would use the Aggregator APIs to easily perform the queries you need and create reports.
+If you have used JBenchy to create tables in the database, you should find tables with the same names you gave to each Aggregator instance. Each table contains all data stored by each respective aggregator, and you can start doing manual queries or updates on them. Normally though you would use the JBenchy APIs to easily perform the queries you need and create reports.
 
 To exit the ij interpreter, simply do:
 
