@@ -1,5 +1,9 @@
 package gr.forth.ics.jbenchy;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -135,9 +139,23 @@ public class Record implements Map<String, Object> {
     public Set<Entry<String, Object>> entrySet() {
         return values.entrySet();
     }
-    
+
+    private static final Joiner joiner = Joiner.on(", ");
+
     @Override
     public String toString() {
-        return values.toString();
+        Function<String, String> keyToString = new Function<String, String>() {
+            public String apply(String key) {
+                if (key == null)
+                    return "<value>=" + getValue();
+                else
+                    return key + "=" + String.valueOf(get(key));
+            }
+        };
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        joiner.appendTo(sb, Iterables.transform(keySet(), keyToString));
+        sb.append("}");
+        return sb.toString();
     }
 }
