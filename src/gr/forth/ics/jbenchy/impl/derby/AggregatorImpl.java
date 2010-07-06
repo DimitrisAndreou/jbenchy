@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.sql.DataSource;
-import javax.swing.tree.RowMapper;
 
 /**
  *
@@ -108,9 +107,9 @@ class AggregatorImpl extends AbstractAggregator {
     protected Records report(final Aggregate aggr, final Filter filter,
             final List<Order> orders, final Object... variables) {
         Preconditions.checkNotNull(aggr, "aggregator");
-        final String aggregatedColumnAlias = aggr.getVariableName();
         List<Record> records = JdbcUtils.executeInResultSet(dataSource, groupBySql(aggr, filter, orders, variables), 
                 new SQLAction<ResultSet, List<Record>>() {
+            final String aggregatedColumnAlias = aggr.getVariableName();
             public List<Record> execute(ResultSet rs) throws SQLException {
                 List<Record> records = Lists.newArrayListWithCapacity(32);
                 while (rs.next()) {
@@ -156,13 +155,15 @@ class AggregatorImpl extends AbstractAggregator {
     
     @Override
     @SuppressWarnings({"unchecked"})
-    protected List<Object> domainOfVariable(Filter filter, List<Order> orders, Object variable) {
+    protected <T> List<T> domainOfVariable(Filter filter, List<Order> orders, final Object variable, final Class<T> expectedType) {
         return JdbcUtils.executeInResultSet(dataSource, domainSql(filter, orders, variable),
-                new SQLAction<ResultSet, List<Object>>() {
-            public List<Object> execute(ResultSet rs) throws SQLException {
-                List<Object> objects = Lists.newArrayListWithCapacity(64);
+                new SQLAction<ResultSet, List<T>>() {
+            public List<T> execute(ResultSet rs) throws SQLException {
+                List<T> objects = Lists.newArrayListWithCapacity(64);
                 while (rs.next()) {
-                    objects.add(rs.getObject(1));
+                    objects.add(expectedType.cast(
+                            schema.getTypeOf(variable).parse(
+                                    rs.getString(1))));
                 }
                 return objects;
             }
