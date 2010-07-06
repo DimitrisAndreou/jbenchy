@@ -69,7 +69,7 @@ public abstract class AbstractAggregator implements Aggregator {
         return aggregateBuilderImpl.sumOf(variable);
     }
     
-    protected abstract List<Object> domainOfVariable(Filter filter, List<Order> orders, Object variable);
+    protected abstract <T> List<T> domainOfVariable(Filter filter, List<Order> orders, Object variable, Class<T> expectedType);
     
     protected abstract void deleteRecords(Filter filter);
     
@@ -89,9 +89,9 @@ public abstract class AbstractAggregator implements Aggregator {
         return new SelectorImpl().filtered(filter);
     }
 
-    public List<Object> domainOf(Object variable) {
+    public <T> List<T> domainOf(Object variable, Class<T> expectedType) {
         Preconditions.checkNotNull(variable, "Null variable");
-        return domainOfVariable(Filters.NULL_FILTER, Arrays.asList(Orders.asc(variable)), variable);
+        return domainOfVariable(Filters.NULL_FILTER, Arrays.asList(Orders.asc(variable)), variable, expectedType);
     }
     
     public void deleteRecords() {
@@ -159,9 +159,9 @@ public abstract class AbstractAggregator implements Aggregator {
                     Filters.and(filterList), orders, variables);
         }
         
-        public List<Object> domainOf(Object variable) {
+        public <T> List<T> domainOf(Object variable, Class<T> expectedType) {
             Preconditions.checkNotNull(variable, "Null variable");
-            return AbstractAggregator.this.domainOfVariable(Filters.and(filterList), orders, variable);
+            return AbstractAggregator.this.domainOfVariable(Filters.and(filterList), orders, variable, expectedType);
         }
 
         public void deleteRecords() {
@@ -213,8 +213,8 @@ public abstract class AbstractAggregator implements Aggregator {
         }
         
         @Override
-        protected List<Object> domainOfVariable(Filter filter, List<Order> orders, Object variable) {
-            return parent.domainOfVariable(filter, orders, variable);
+        protected <T> List<T> domainOfVariable(Filter filter, List<Order> orders, Object variable, Class<T> expectedType) {
+            return parent.domainOfVariable(filter, orders, variable, expectedType);
         }
         
         protected void deleteRecords(Filter filter) {

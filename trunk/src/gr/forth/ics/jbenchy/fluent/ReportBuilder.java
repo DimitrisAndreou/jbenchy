@@ -18,9 +18,14 @@ public interface ReportBuilder extends AggregateBuilder {
 
     /**
      * Returns the union of all values that the specified variable takes,
-     * honoring ordering and filtering imposed by this object. 
+     * honoring ordering and filtering imposed by this object.
+     *
+     * @param expectedType the expected type class of the values. This should be
+     * combatible with the {@code DataType} used to model the specified variable, otherwise a
+     * {@code ClassCastException} will be thrown
+     * @param <T> the expected type of the values
      */
-    List<Object> domainOf(Object variable);
+    <T> List<T> domainOf(Object variable, Class<T> expectedType);
 
     /**
      * Declares that this instance will use the specified orders. Note that additional
